@@ -1,0 +1,114 @@
+-- sunrise / sunset calculation
+function rscalc(latitude, longitude, when)
+  local pi = math.pi
+  local doublepi = pi * 2
+  local rads = pi / 180.0
+
+  local TZ = function(when)
+    local ts = os.time(when)
+    local utcdate, localdate = os.date('!*t', ts), os.date('*t', ts)
+    localdate.isdst = false
+
+    local diff = os.time(localdate) - os.time(utcdate)
+    return math.floor(diff / 60) / 60
+  end
+
+  local range = function(x)
+    local a = x / doublepi
+    local b = doublepi * (a - math.floor(a))
+    return b < 0 and (doublepi + b) or b
+  end
+
+  when = when or os.date('*t')
+
+  local y2k = { year = 2000, month = 1, day = 1 }
+  local y2kdays = os.time(when) - os.time(y2k)
+  y2kdays = math.ceil(y2kdays / 86400)
+
+  local meanlongitude = range(280.461 * rads + 0.9856474 * rads * y2kdays)
+  local meananomaly = range(357.528 * rads + 0.9856003 * rads * y2kdays)
+  local lambda = range(meanlongitude + 1.915 * rads * math.sin(meananomaly) + rads / 50 * math.sin(2 * meananomaly))
+
+  local obliq = 23.439 * rads - y2kdays * rads / 2500000
+
+  local alpha = math.atan2(math.cos(obliq) * math.sin(lambda), math.cos(lambda))
+  local declination = math.asin(math.sin(obliq) * math.sin(lambda))
+
+  local LL = meanlongitude - alpha
+  if meanlongitude < pi then
+    LL = LL + doublepi
+  end
+
+  local dfo = pi / 216.45
+
+  if latitude < 0 then
+    dfo = -dfo
+  end
+
+  local fo = math.min(math.tan(declination + dfo) * math.tan(latitude * rads), 1)
+  local ha = 12 * math.asin(fo) / pi + 6
+
+  local timezone = TZ(when)
+  local equation = 12 + timezone + 24 * (1 - LL / doublepi) - longitude / 15
+
+  local sunrise, sunset = equation - ha, equation + ha
+
+  if sunrise > 24 then
+    sunrise = sunrise - 24
+  end
+
+  if sunset > 24 then
+    sunset = sunset - 24
+  end
+
+  return math.floor(sunrise * 60), math.ceil(sunset * 60)
+end
+
+function getSunPos(lat, long, time)
+    findTime = {}
+    findTime.hour, findTime.min = time.hour, time.min
+    fixedAzimuthLast, fixedAzimuth = 0, 0
+    for i=0,23 do
+        for j=0,59 do
+            time.hour, time.min = i, j
+            local altitude, azimuth = sunposition(lat, long, time)
+            -- fix azimuth
+            if fixedAzimuthLast < azimuth then 
+                fixedAzimuthLast = azimuth
+                fixedAzimuth = fixedAzimuthLast
+            else
+                fixedAzimuth = fixedAzimuthLast + (180 - azimuth)
+            end
+            -- find azimuth at target time
+            if findTime.hour == i and findTime.min == j then
+                -- final result
+                return altitude, fixedAzimuth
+            end
+        end
+    end
+end
+  
+
+function sunposition(latitude, longitude, time)
+    time = time or os.time()
+    if type(time) == 'table' then time = os.time(time) end
+
+    local date = os.date('*t', time)
+    local timezone = (os.time(date) - os.time(os.date('!*t', time))) / 3600
+    if date.isdst then timezone = timezone + 1 end
+
+    local utcdate = os.date('*t', time - timezone * 3600)
+    local latrad = math.rad(latitude)
+    local fd = (utcdate.hour + utcdate.min / 60 + utcdate.sec / 3600) / 24
+    local g = (2 * math.pi / 365.25) * (utcdate.yday + fd)
+    local d = math.rad(0.396372 - 22.91327 * math.cos(g) + 4.02543 * math.sin(g) - 0.387205 * math.cos(2 * g)
+      + 0.051967 * math.sin(2 * g) - 0.154527 * math.cos(3 * g) + 0.084798 * math.sin(3 * g))
+    local t = math.rad(0.004297 + 0.107029 * math.cos(g) - 1.837877 * math.sin(g)
+      - 0.837378 * math.cos(2 * g) - 2.340475 * math.sin(2 * g))
+    local sha = 2 * math.pi * (fd - 0.5) + t + math.rad(longitude)
+
+    local sza = math.acos(math.sin(latrad) * math.sin(d) + math.cos(latrad) * math.cos(d) * math.cos(sha))
+    local saa = math.acos((math.sin(d) - math.sin(latrad) * math.cos(sza)) / (math.cos(latrad) * math.sin(sza)))
+
+    return 90 - math.deg(sza), math.deg(saa)
+end
