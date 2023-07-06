@@ -1,3 +1,4 @@
+-- Specificeer hier de KNX adressen
 knxLightAdress = '2/0/211'
 knxLightStatus = '2/3/202'
 knxBrightnessAdress = '2/1/201'
@@ -5,6 +6,7 @@ knxBrightnessFeedbackAdress = '2/3/205'
 
 knxvalue = grp.getvalue(knxBrightnessAdress)
 
+-- Specificeer de  IP van de Conbee of RPI en genereer een API key.
 conbeeUrl = '10.0.10.16'
 
 conbeeAPIKey = '0F7D702390'

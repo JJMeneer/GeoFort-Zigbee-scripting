@@ -1,3 +1,4 @@
+-- Specificeer hier de KNX adressen
 knxLightAdress = '2/0/210'
 knxLightStatus = '2/3/201'
 knxBrightnessAdress = '2/1/200'
@@ -5,6 +6,7 @@ knxBrightnessFeedbackAdress = '2/3/204'
 
 knxvalue = grp.getvalue(knxBrightnessAdress)
 
+-- Checkt alleen wat de HTTP return code is van de RPi Phoscon app. Niet of er een zigbee error is.
 conbeeUrl = '10.0.10.16'
 
 conbeeAPIKey = '0F7D702390'

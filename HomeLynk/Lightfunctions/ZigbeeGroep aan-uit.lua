@@ -15,6 +15,7 @@ requestObject = {
 
 res, code = setConbeeVars(requestObject, conbeeUrl, conbeeApiKey, nil, conbeeGroupId)
 
+-- Checkt alleen wat de HTTP return code is van de RPi Phoscon app. Niet of er een zigbee error is.
 if (code == 200) and (res[1]['error'] == nil) then
   grp.write('2/3/203', zigbeeonoff)
   for i, adress in ipairs(knxGroupLightsFeedbackAdresses) do
