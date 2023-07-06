@@ -1,0 +1,62 @@
+-- light functions
+json = require("json")
+http = require("socket.http")
+
+--als groep aansturen, dan conbeeLightId = nil
+function getConbeeInfo(conbeeUrl, conbeeAPIKey, conbeeLightId, conbeeGroupId)
+  conbeeApiUrl = "http://" .. conbeeUrl .. "/api/" .. conbeeAPIKey 
+
+
+  if (conbeeLightId ~= nil) then
+    requestUrl = conbeeApiUrl .. "/lights/" .. conbeeLightId
+  elseif (conbeeGroupId ~= nil) then
+    requestUrl = conbeeApiUrl .. "/groups/" .. conbeeGroupId
+  end
+
+  response = http.request{
+    url = requestUrl,
+    method = "GET"
+  }
+  log(response)
+
+     data = json.decode(response)
+
+  return data
+end
+
+--als groep aansturen, dan conbeeLightId = nil
+function setConbeeVars(requestObject, conbeeUrl, conbeeAPIKey, conbeeLightId, conbeeGroupId)
+  conbeeApiUrl = "http://" .. conbeeUrl .. "/api/" .. conbeeAPIKey 
+
+
+  if (conbeeLightId ~= nil) then
+    requestUrl = conbeeApiUrl .. "/lights/" .. conbeeLightId .. '/state'
+  elseif (conbeeGroupId ~= nil) then
+    requestUrl = conbeeApiUrl .. "/groups/" .. conbeeGroupId .. '/action'
+  end
+
+
+  payload = json.encode(requestObject)
+
+  response, code = http.request{
+    url = requestUrl,
+    method = "PUT",
+    headers = {
+        ['Content-Length'] = #payload,
+    },
+    source = ltn12.source.string(payload)
+  }
+  return json.decode(response), code
+
+end
+
+
+function setConbeeGroupScene(group, scene, conbeeUrl, conbeeAPIKey)
+  conbeeApiUrl = "http://" .. conbeeUrl .. "/api/" .. conbeeAPIKey .. "/groups/" .. group .. "/scenes/" .. scene .. "/recall"
+
+  response, code = http.request{
+    url = conbeeApiUrl,
+    method = "PUT"
+  }
+  return json.decode(response), code
+end
